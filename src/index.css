@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Fondo y color de texto base de toda la consola. */
+body {
+  @apply bg-slate-950 text-slate-100;
+}

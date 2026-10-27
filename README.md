@@ -7,13 +7,11 @@ El enunciado completo está en [docs/ENUNCIADO.md](docs/ENUNCIADO.md).
 
 ## Integrantes
 
-> **PENDIENTE:** completar antes de la entrega.
-
 | Nombre | Código |
 |:-------|:-------|
-| Andrea Vidal | _por completar_ |
-| _por completar_ | _por completar_ |
-| _por completar_ | _por completar_ |
+| Andrea Vidal | 202410193 |
+| Nicole Yucra | 202510210 |
+| Camila Gomez | 202510093 |
 
 Tripulación: **GRUPO4** · código de equipo **TEAM-039**
 

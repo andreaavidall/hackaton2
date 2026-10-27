@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { api, errorMessage } from '../api/client'
 import type { Crew, WantedPage } from '../api/types'
 import { Card, EmptyState, ErrorBox, Spinner, formatBerries, inputClass } from '../components/ui'
+import { readCachedPage, savePage, saveScroll, takeScroll } from './wantedCache'
 import {
   FRUITS,
   SIZES,
@@ -23,14 +24,24 @@ export function WantedListPage() {
   const query = readQuery(searchParams)
   const { page, size, status, crewId, fruit, q, sort } = query
 
-  const [data, setData] = useState<WantedPage | null>(null)
+  // La query que se le manda a la API identifica esta combinacion de filtros:
+  // la usamos como clave de la cache y del scroll guardado.
+  const cacheKey = toApiParams(query)
+
+  // Si ya vimos este listado, arrancamos con esos datos en vez de con null.
+  // Asi al volver del detalle la lista aparece pintada, sin spinner.
+  const [data, setData] = useState<WantedPage | null>(() => readCachedPage(cacheKey))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
   const [crews, setCrews] = useState<Crew[]>([])
+  const [crewsLoaded, setCrewsLoaded] = useState(false)
 
   // Contador de peticiones: nos sirve para descartar respuestas viejas.
   const lastRequest = useRef(0)
+
+  // El scroll se restaura una sola vez por montaje: el de la vuelta del detalle.
+  const scrollRestored = useRef(false)
 
   /** Cambia la URL, que es lo que dispara la recarga de datos. */
   function update(changes: Partial<WantedQuery>, replace = false): void {
@@ -46,21 +57,38 @@ export function WantedListPage() {
     update({ ...changes, page: 0 })
   }
 
+  // Un crewId solo se puede comprobar contra /crews, que llega aparte.
+  // Mientras no sea de fiar no pedimos el listado: una peticion con un id
+  // falso la rechaza la API con un 400, y ese error alcanzaria a verse.
+  // Se calcula aqui, durante el render, y no en un efecto, porque los efectos
+  // corren en orden y el de la carga se adelantaria al de la limpieza.
+  const crewIdSinComprobar = crewId !== '' && !crewsLoaded
+  const crewIdDesconocido =
+    crewId !== '' && crews.length > 0 && !crews.some((crew) => crew.id === crewId)
+  const crewIdDeFiar = !crewIdSinComprobar && !crewIdDesconocido
+
   // --- Carga del listado ------------------------------------------------
   useEffect(() => {
+    if (!crewIdDeFiar) return
+
     const controller = new AbortController()
     const requestId = lastRequest.current + 1
     lastRequest.current = requestId
 
+    // Si tenemos una copia de este listado la mostramos ya, y pedimos los datos
+    // igualmente por detras para no quedarnos con informacion vieja.
+    const cached = readCachedPage(cacheKey)
+    if (cached !== null) setData(cached)
     setLoading(true)
     setError(null)
 
-    api<WantedPage>('/wanted?' + toApiParams(query), { signal: controller.signal })
+    api<WantedPage>('/wanted?' + cacheKey, { signal: controller.signal })
       .then((result) => {
         // Doble proteccion contra respuestas que llegan tarde: el abort corta
         // la peticion anterior, y este id descarta cualquier respuesta que no
         // sea la de la ultima peticion lanzada.
         if (requestId !== lastRequest.current) return
+        savePage(cacheKey, result)
         setData(result)
         setLoading(false)
       })
@@ -74,7 +102,7 @@ export function WantedListPage() {
     return () => controller.abort()
     // Dependemos de los valores sueltos y no del objeto `query`,
     // que se recrea en cada render.
-  }, [page, size, status, crewId, fruit, q, sort, retry])
+  }, [page, size, status, crewId, fruit, q, sort, retry, crewIdDeFiar])
 
   // Las tripulaciones del filtro no dependen de los filtros: se cargan una vez.
   useEffect(() => {
@@ -85,6 +113,11 @@ export function WantedListPage() {
       })
       .catch(() => {
         // El filtro de tripulacion es secundario: si falla, el listado sigue.
+      })
+      .finally(() => {
+        // Marcamos el intento como terminado haya ido bien o mal, para no
+        // dejar el listado esperando para siempre si /crews falla.
+        if (!cancelled) setCrewsLoaded(true)
       })
     return () => {
       cancelled = true
@@ -99,6 +132,22 @@ export function WantedListPage() {
       update({ page: data.totalPages - 1 }, true)
     }
   }, [data, page])
+
+  // Si la URL trae un crewId que no es de ninguna tripulacion real (enlace
+  // viejo o escrito a mano), lo quitamos: el resto de filtros se validan al
+  // leer la URL, pero los ids solo se pueden comprobar contra /crews.
+  useEffect(() => {
+    if (crewIdDesconocido) update({ crewId: '', page: 0 }, true)
+  }, [crewIdDesconocido])
+
+  // Devuelve el scroll al sitio donde se dejo el listado antes de abrir un
+  // detalle. useLayoutEffect corre antes de pintar, asi no se ve el salto.
+  useLayoutEffect(() => {
+    if (data === null || scrollRestored.current) return
+    const y = takeScroll(cacheKey)
+    if (y > 0) window.scrollTo(0, y)
+    scrollRestored.current = true
+  }, [data, cacheKey])
 
   // --- Busqueda con debounce --------------------------------------------
   const [text, setText] = useState(q)
@@ -221,6 +270,8 @@ export function WantedListPage() {
                   // Guardamos los filtros actuales para que Volver devuelva el
                   // listado exactamente como estaba.
                   state={{ search: location.search }}
+                  // Y guardamos donde estaba el scroll antes de irnos.
+                  onClick={() => saveScroll(cacheKey, window.scrollY)}
                   className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-800 bg-slate-900/60 p-4 hover:border-amber-500/50"
                 >
                   <span className="font-medium text-slate-100">{wanted.name}</span>

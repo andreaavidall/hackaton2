@@ -4,6 +4,12 @@
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 
+// El .env no se versiona, asi que avisamos fuerte si falta en vez de dejar que
+// todas las peticiones salgan hacia "undefined/...".
+if (BASE_URL === undefined || BASE_URL === '') {
+  throw new Error('Falta VITE_API_BASE_URL. Copia .env.example como .env y vuelve a levantar Vite.')
+}
+
 const TOKEN_KEY = 'logpose_token'
 
 export function getToken(): string | null {

@@ -35,9 +35,22 @@ export function readQuery(params: URLSearchParams): WantedQuery {
     status: readOption(params.get('status'), STATUSES, '' as const),
     fruit: readOption(params.get('fruit'), FRUITS, '' as const),
     sort: readOption(params.get('sort'), SORTS, DEFAULT_SORT),
-    crewId: params.get('crewId') ?? '',
+    crewId: readCrewId(params.get('crewId')),
     q: params.get('q') ?? '',
   }
+}
+
+/**
+ * El crewId no tiene una lista fija que comprobar aqui (los ids vienen de
+ * /crews), asi que validamos lo que si sabemos del contrato: que no este
+ * vacio y que no pase de 200 caracteres. Un id con forma valida pero
+ * inexistente lo descarta el listado cuando ya tiene las tripulaciones.
+ */
+function readCrewId(raw: string | null): string {
+  if (raw === null) return ''
+  const value = raw.trim()
+  if (value === '' || value.length > 200) return ''
+  return value
 }
 
 function readPage(raw: string | null): number {

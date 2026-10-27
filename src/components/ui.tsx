@@ -83,3 +83,20 @@ export const inputClass =
 export const buttonClass =
   'rounded-md bg-amber-500 px-4 py-2 font-medium text-slate-950 ' +
   'hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
+
+/**
+ * El Grand Line esta cerrado hasta aprobar la inspeccion del CP3: la API
+ * responde 423 LOG_POSE_REQUIRED. No es un fallo, asi que no mostramos un
+ * error con reintento sino una explicacion.
+ */
+export function LogPoseRequired({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-amber-900 bg-amber-950/40 p-8 text-center">
+      <p className="text-lg font-semibold text-amber-300">Necesitan el Log Pose</p>
+      <p className="mt-2 text-slate-300">{message}</p>
+      <p className="mt-4 text-sm text-slate-500">
+        Esta zona se abre al aprobar la inspeccion de Reverse Mountain.
+      </p>
+    </div>
+  )
+}

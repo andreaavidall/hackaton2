@@ -2,6 +2,8 @@
 // Centralizarlo aqui nos da gratis: la URL base, el token en cada request
 // y un formato de error igual para todas las pantallas.
 
+import type { NewsDetail } from './types'
+
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL
 
 // El .env no se versiona, asi que avisamos fuerte si falta en vez de dejar que
@@ -29,6 +31,12 @@ export class ApiError extends Error {
   status: number
   code: string
   details: FieldError[]
+
+  /**
+   * Solo en el 409 NEWS_ALREADY_VERIFIED: la API devuelve en `current` la
+   * noticia con su estado real, para que el frontend se ponga al dia.
+   */
+  current?: NewsDetail
 
   constructor(status: number, code: string, message: string, details: FieldError[] = []) {
     super(message)
@@ -91,13 +99,20 @@ async function toApiError(response: Response): Promise<ApiError> {
   try {
     const body: unknown = await response.json()
     if (typeof body === 'object' && body !== null) {
-      const data = body as Partial<{ code: string; message: string; details: FieldError[] }>
-      return new ApiError(
+      const data = body as Partial<{
+        code: string
+        message: string
+        details: FieldError[]
+        current: NewsDetail
+      }>
+      const error = new ApiError(
         response.status,
         data.code ?? 'UNKNOWN',
         data.message ?? 'Algo salio mal.',
         data.details ?? [],
       )
+      if (data.current !== undefined) error.current = data.current
+      return error
     }
   } catch {
     // El cuerpo no era JSON (por ejemplo, un 502 del proxy).

@@ -67,20 +67,29 @@ La contraseña no está en el repositorio ni debe subirse.
 | `/` | Dashboard con los indicadores y el Log Pose | privada |
 | `/wanted` | Carteles de "Se Busca" | privada |
 | `/wanted/:id` | Detalle de un cartel | privada |
+| `/news` | Feed de noticias del mundo | privada · Log Pose |
+| `/news/:id` | Detalle de una noticia y verificación | privada · Log Pose |
+| `/sagas` | Resumen de las sagas | privada · Log Pose |
+| `/sagas/:id` | La saga contada como recorrido | privada · Log Pose |
 | cualquier otra | Página 404 | — |
+
+Las rutas del Grand Line funcionan solo con el Log Pose aprobado (CP3). Hasta
+entonces la API responde `423 LOG_POSE_REQUIRED` y la pantalla lo explica en
+lugar de mostrar un error.
 
 ## Estado de los checkpoints
 
 | Checkpoint | Estado |
 |:-----------|:-------|
-| CP1 — Zarpar | implementado |
-| CP2 — Carteles de "Se Busca" | implementado |
+| CP1 — Zarpar | implementado y verificado contra la API |
+| CP2 — Carteles de "Se Busca" | implementado y verificado contra la API |
 | CP3 — Inspección del Log Pose | pendiente (presencial) |
-| CP4 — News Coo | no implementado |
-| CP5 — Poneglyph | no implementado |
+| CP4 — News Coo | implementado, sin verificar con datos reales |
+| CP5 — Poneglyph | implementado, sin verificar con datos reales |
 
-Los endpoints del Grand Line responden `423 LOG_POSE_REQUIRED` hasta aprobar el
-CP3; la app todavía no los consume.
+El CP4 y el CP5 están construidos a partir del contrato de Swagger, como
+permite el enunciado mientras se espera la inspección. No se han podido probar
+con datos reales porque sus endpoints responden `423` hasta aprobar el CP3.
 
 ## Estructura
 

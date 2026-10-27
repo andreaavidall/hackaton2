@@ -4,8 +4,12 @@ import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { NewsDetailPage } from './pages/NewsDetailPage'
+import { NewsFeedPage } from './pages/NewsFeedPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { SagaStoryPage } from './pages/SagaStoryPage'
+import { SagasPage } from './pages/SagasPage'
 import { WantedDetailPage } from './pages/WantedDetailPage'
 import { WantedListPage } from './pages/WantedListPage'
 
@@ -23,6 +27,13 @@ export function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/wanted" element={<WantedListPage />} />
             <Route path="/wanted/:id" element={<WantedDetailPage />} />
+
+            {/* Grand Line: requiere el Log Pose (CP3). Hasta entonces la API
+                responde 423 y estas pantallas lo explican. */}
+            <Route path="/news" element={<NewsFeedPage />} />
+            <Route path="/news/:id" element={<NewsDetailPage />} />
+            <Route path="/sagas" element={<SagasPage />} />
+            <Route path="/sagas/:id" element={<SagaStoryPage />} />
           </Route>
         </Route>
 

@@ -1,0 +1,145 @@
+/*
+ * Scrollytelling de la saga.
+ *
+ * Regla de oro de este archivo: la historia se entiende SIN animaciones.
+ * Todo lo animado parte de su estado final (visible, en su sitio) y las
+ * animaciones solo se activan dentro de @media (prefers-reduced-motion:
+ * no-preference) y @supports. Si el navegador no las soporta, o si la persona
+ * pidio menos movimiento, no se pierde nada de contenido.
+ *
+ * Las animaciones son CSS Scroll-driven Animations nativas (animation-timeline),
+ * sin JavaScript y sin librerias: corren fuera del hilo principal.
+ */
+
+.saga {
+  background: var(--saga-bg);
+  color: var(--saga-text);
+  transition: background-color 600ms ease, color 600ms ease;
+}
+
+.saga-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* El mapa es persistente: se queda fijo mientras la narrativa pasa al lado. */
+.saga-map {
+  position: sticky;
+  top: 0.75rem;
+  background: var(--saga-surface);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: background-color 600ms ease;
+}
+
+@media (min-width: 900px) {
+  .saga-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/*
+ * Espacio al final de la columna de etapas.
+ *
+ * La etapa activa es la que cruza el centro de la pantalla. Sin este hueco,
+ * la ultima etapa nunca llega al centro (la pagina se acaba antes) y seria
+ * imposible activarla: ni el mapa ni la URL llegarian al final del recorrido.
+ */
+.saga-stages {
+  padding-bottom: 45vh;
+}
+
+/* Cada etapa ocupa pantalla suficiente para que el scroll la active sola. */
+.saga-stage {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 0;
+  scroll-margin-top: 1rem;
+}
+
+.saga-stage:focus-visible {
+  outline: 2px solid var(--saga-accent);
+  outline-offset: 0.5rem;
+}
+
+/* Estado base: completamente visible y legible. */
+.saga-stage-body {
+  opacity: 1;
+  transform: none;
+}
+
+/* El barco se mueve de isla a isla. */
+.saga-ship {
+  transition: transform 600ms ease;
+}
+
+/* La ruta recorrida se dibuja a medida que se avanza. */
+.saga-route-done {
+  transition: stroke-dashoffset 600ms ease;
+}
+
+.saga-progress-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--saga-text) 20%, transparent);
+  overflow: hidden;
+}
+
+.saga-progress-fill {
+  height: 100%;
+  background: var(--saga-accent);
+  transform-origin: left center;
+}
+
+/* --- Animaciones: solo si se soportan y si no se pidio menos movimiento --- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* Cada bloque de narrativa entra segun su propia posicion en pantalla. */
+    .saga-stage-body {
+      animation: saga-entrar linear both;
+      animation-timeline: view();
+      animation-range: entry 15% cover 40%;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    /* La barra de progreso sigue el scroll de la pagina, sin JavaScript. */
+    .saga-progress-fill--scroll {
+      animation: saga-progreso linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saga,
+  .saga-map,
+  .saga-ship,
+  .saga-route-done {
+    transition: none;
+  }
+}
+
+@keyframes saga-entrar {
+  from {
+    opacity: 0.25;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes saga-progreso {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
